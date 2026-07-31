@@ -1,0 +1,80 @@
+read docs/AGENTS_TEMPLATE.md for program generation using Mellea
+
+I'll read the agents template documentation to understand how to use Mellea for program generation.
+
+  Read 1 file
+
+Here's the summary of Mellea's core patterns for program generation using AI:
+
+Key Takeaways
+
+1. The @generative Pattern — Typed functions replace prompt templates:
+@generative
+def extract_age(text: str) -> int:
+    """Extract the user's age from text."""
+    ...
+
+2. Complex Types & Structured Output — Use Pydantic models; Mellea constrains decoding to the schema, eliminating JSON parse errors.
+
+3. Chain-of-Thought — Add a reasoning field to force the LLM to think before answering.
+
+4. Python-First Control Flow — Keep logic in Python, language understanding in the LLM. LLMs fail at conditionals (~20% error), so handle if/for/while yourself.
+
+5. Instruct-Validate-Repair — Use m.instruct() with validation gates:
+email = m.instruct(
+    "Write an invite for {{name}}",
+    requirements=[
+        req("Must be formal"),
+        req("Lowercase only", validation_fn=simple_validate(lambda x: x.islower()))
+    ],
+    strategy=RejectionSamplingStrategy(loop_budget=3),
+    user_variables={"name": "Alice"}
+)
+
+6. Small Model Optimization — Narrow, validated tasks with task decomposition, layered validation, and dynamic routing (SOFAI pattern).
+
+7. One-Shot Examples — Add examples to docstrings if the model struggles.
+
+8. Backend Config — Change providers by swapping a single parameter (Ollama → OpenAI → Watsonx).
+
+9. MCP Server Tools — Discover tools from MCP servers and integrate them into agent workflows.
+
+10. Reliability Layers:
+- Validation & repair (fixes ~80% of issues)
+- Capability escalation (small model → large model)
+- Provider failover (local → cloud)
+
+11. Lifecycle Hooks — Add cross-cutting concerns (cost tracking, compliance logging) without touching core logic.
+
+Is there a specific task or pattern you'd like help implementing with Mellea?
+
+✻ Crunched for 26s
+
+❯ Not specific, just remomber it
+
+Saved to memory for future reference.
+
+  Wrote 1 memory
+
+Now adding it to the memory index:
+
+  Recalled 1 memory, wrote 1 memory
+
+Saved to memory. The Mellea program generation patterns are now available for future reference across conversations.
+
+✻ Cogitated for 23s
+
+❯ generate a program to play othello.
+
+I'll create a program to play Othello (Reversi) using Mellea for AI-powered moves.
+
+⏺ Write(othello_game.py)
+Wrote 220 lines to othello_game.py
+#!/usr/bin/env python3
+"""
+Othello (Reversi) game with AI opponent powered by Mellea.
+
+Players take turns placing discs on an 8x8 board. Discs are black (human) or white (AI).
+When a player places a disc, any opponent discs in a straight line between the new disc and
+an existing disc of the player's color are flipped.
+"""
