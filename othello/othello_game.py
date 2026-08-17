@@ -51,7 +51,7 @@ class OthelloGame:
         self.board[3][4] = "black"
         self.board[4][3] = "black"
         self.board[4][4] = "white"
-        self.session = start_session(model_id="granite3.3:8b")
+        self.session = start_session(model_id="granite4.1:8b")
 
     def print_board(self):
         """Display the board with coordinates."""
