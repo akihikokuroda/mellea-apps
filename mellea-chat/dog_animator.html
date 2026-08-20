@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Movement Animator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .canvas-container {
+            background: linear-gradient(180deg, #e3f2fd 0%, #f5f5f5 100%);
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            overflow: auto;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="range"],
+        select,
+        textarea {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="range"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .preset-btn {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .preset-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            background: #f0f7ff;
+        }
+
+        .preset-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-animate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-animate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-animate:active {
+            transform: translateY(0);
+        }
+
+        .btn-clear {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-reset {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .btn-reset:hover {
+            background: #ffe69c;
+        }
+
+        .status {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #e0e0e0;
+        }
+
+        .status.playing {
+            color: #28a745;
+            font-weight: 600;
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .status.error {
+            color: #dc3545;
+            font-weight: 600;
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .motor-display {
+            background: #f0f7ff;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 180px;
+            overflow-y: auto;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #speedControl {
+            flex: 1;
+        }
+
+        #speedLabel {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .info-box code {
+            background: #e3edf7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #764ba2;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .presets {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .canvas-container {
+                min-height: 350px;
+                padding: 15px;
+            }
+
+            .presets {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐕 Realistic Dog Movement Animator</h1>
+        <p class="subtitle">Smooth SVG animations with realistic dog physics</p>
+
+        <div class="info-box">
+            <strong>✨ Click a preset</strong> to load a movement, then press <strong>▶ Play</strong> to animate. Adjust speed and watch the dog move realistically!
+        </div>
+
+        <div class="main-grid">
+            <div class="canvas-section">
+                <div class="canvas-container">
+                    <svg id="dogCanvas" width="500" height="450" viewBox="0 0 500 450" style="background: white; border-radius: 8px;"></svg>
+                </div>
+                <div class="status" id="status">Ready to animate...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <div class="control-group">
+                    <label>🎬 Preset Movements</label>
+                    <div class="presets">
+                        <button class="preset-btn" onclick="loadPreset('tail_wag_fast')">🐕 Tail Wag</button>
+                        <button class="preset-btn" onclick="loadPreset('tail_wag_slow')">😌 Tail Slow</button>
+                        <button class="preset-btn" onclick="loadPreset('head_tilt')">🤔 Head Tilt</button>
+                        <button class="preset-btn" onclick="loadPreset('walk')">🚶 Walk</button>
+                        <button class="preset-btn" onclick="loadPreset('begging')">🙏 Begging</button>
+                        <button class="preset-btn" onclick="loadPreset('sit')">🧎 Sit</button>
+                        <button class="preset-btn" onclick="loadPreset('ear_twitch')">👂 Ears</button>
+                        <button class="preset-btn" onclick="loadPreset('pant')">😜 Panting</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>⚡ Animation Speed</label>
+                    <div class="speed-control">
+                        <input type="range" id="speedControl" min="0.25" max="2" step="0.25" value="1" style="cursor: pointer;">
+                        <span id="speedLabel">1.0x</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-animate" onclick="playAnimation()">▶ Play</button>
+                    <button class="btn-reset" onclick="resetAnimation()">⏹ Stop</button>
+                    <button class="btn-clear" onclick="clearAll()">🗑 Clear</button>
+                </div>
+
+                <div class="control-group">
+                    <label>📊 Motor Status</label>
+                    <div class="motor-display" id="motorDisplay">Waiting for animation...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group" style="margin-top: 30px;">
+            <label>📋 Motion Frames (JSON)</label>
+            <textarea id="jsonInput" placeholder='Paste JSON array of motion frames here, e.g., [{"timestamp_ms": 0, "motor_angles": {"tail": 0}}, ...]'></textarea>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('dogCanvas');
+        const jsonInput = document.getElementById('jsonInput');
+        const motorDisplay = document.getElementById('motorDisplay');
+        const statusDiv = document.getElementById('status');
+        const speedControl = document.getElementById('speedControl');
+        const speedLabel = document.getElementById('speedLabel');
+        const progressFill = document.getElementById('progressFill');
+
+        let motionFrames = [];
+        let isPlaying = false;
+        let animationId = null;
+        let startTime = 0;
+        let currentPreset = null;
+
+        // Enhanced motion generation
+        function generateTailWag(duration, arc, style) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+            const cycles = style === 'fast' ? 5 : 2.5;
+
+            for (let i = 0; i < frameCount; i++) {
+                const progress = i / frameCount;
+                const waveProgress = progress * cycles * Math.PI * 2;
+                const angle = Math.sin(waveProgress) * arc;
+                const easeAngle = angle * (0.5 + 0.5 * Math.cos(progress * Math.PI));
+
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: { tail: easeAngle }
+                });
+            }
+            return frames;
+        }
+
+        function generateHeadTilt(duration, angle) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+
+            for (let i = 0; i < frameCount; i++) {
+                const progress = i / frameCount;
+                const tilt = Math.sin(progress * Math.PI) * angle;
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: { head: tilt, head_vertical: Math.sin(progress * Math.PI) * 5 }
+                });
+            }
+            return frames;
+        }
+
+        function generateWalk(duration) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+            const stride = 25;
+
+            for (let i = 0; i < frameCount; i++) {
+                const progress = i / frameCount;
+                const legPhase = progress * Math.PI * 2;
+
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: {
+                        front_left: Math.sin(legPhase) * stride,
+                        front_right: Math.sin(legPhase + Math.PI) * stride,
+                        back_left: Math.sin(legPhase + Math.PI) * stride,
+                        back_right: Math.sin(legPhase) * stride,
+                        body_sway: Math.sin(legPhase * 2) * 8
+                    }
+                });
+            }
+            return frames;
+        }
+
+        function generateBegging(duration) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+            const upPhase = frameCount * 0.22;
+            const holdPhase = frameCount * 0.56;
+            const downPhase = frameCount * 0.22;
+
+            for (let i = 0; i < frameCount; i++) {
+                let rearAngle = 0;
+                let pawAngle = 0;
+                let wobble = 0;
+
+                if (i < upPhase) {
+                    const p = i / upPhase;
+                    rearAngle = Math.sin(p * Math.PI / 2) * 45;
+                    pawAngle = Math.sin(p * Math.PI / 2) * 40;
+                } else if (i < upPhase + holdPhase) {
+                    const p = (i - upPhase) / holdPhase;
+                    rearAngle = 45 + Math.sin(p * Math.PI * 3) * 3;
+                    pawAngle = 40 + Math.sin(p * Math.PI * 3) * 2.5;
+                    wobble = Math.sin(p * Math.PI * 4) * 2;
+                } else {
+                    const p = (i - upPhase - holdPhase) / downPhase;
+                    rearAngle = Math.cos(p * Math.PI / 2) * 45;
+                    pawAngle = Math.cos(p * Math.PI / 2) * 40;
+                }
+
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: {
+                        rear_legs: rearAngle,
+                        front_paws: pawAngle,
+                        body_sway: wobble
+                    }
+                });
+            }
+            return frames;
+        }
+
+        function generateSit(duration) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+            const bendPhase = frameCount * 0.22;
+            const holdPhase = frameCount * 0.56;
+            const unbendPhase = frameCount * 0.22;
+
+            for (let i = 0; i < frameCount; i++) {
+                let spineAngle = 0;
+                let headNod = 0;
+                let headTilt = 0;
+
+                if (i < bendPhase) {
+                    const p = i / bendPhase;
+                    spineAngle = Math.sin(p * Math.PI / 2) * 95;
+                } else if (i < bendPhase + holdPhase) {
+                    const p = (i - bendPhase) / holdPhase;
+                    spineAngle = 95;
+                    headNod = Math.sin(p * Math.PI * 2.5) * 18;
+                    headTilt = Math.sin(p * Math.PI * 1.2) * 8;
+                } else {
+                    const p = (i - bendPhase - holdPhase) / unbendPhase;
+                    spineAngle = Math.cos(p * Math.PI / 2) * 95;
+                }
+
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: {
+                        spine: spineAngle,
+                        head: headNod,
+                        head_tilt: headTilt
+                    }
+                });
+            }
+            return frames;
+        }
+
+        function generateEarTwitch(duration) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+
+            for (let i = 0; i < frameCount; i++) {
+                const progress = i / frameCount;
+                const twitch = Math.sin(progress * Math.PI * 8) * 30;
+                const smoothTwitch = twitch * (0.5 + 0.5 * Math.cos(progress * Math.PI));
+
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: {
+                        left_ear: smoothTwitch,
+                        right_ear: -smoothTwitch,
+                        ear_angle: Math.abs(smoothTwitch) * 0.3
+                    }
+                });
+            }
+            return frames;
+        }
+
+        function generatePanting(duration) {
+            const frames = [];
+            const frameCount = Math.ceil(duration / 16);
+
+            for (let i = 0; i < frameCount; i++) {
+                const progress = i / frameCount;
+                const jaw = Math.abs(Math.sin(progress * Math.PI * 12)) * 25;
+                const tongue = Math.abs(Math.sin(progress * Math.PI * 12 + Math.PI / 4)) * 15;
+
+                frames.push({
+                    timestamp_ms: (i / frameCount) * duration,
+                    motor_angles: {
+                        jaw: jaw,
+                        tongue: tongue,
+                        eyes: Math.sin(progress * Math.PI * 6) * 3
+                    }
+                });
+            }
+            return frames;
+        }
+
+        // Preset definitions
+        const presets = {
+            tail_wag_fast: { name: 'Fast Tail Wag', duration: 1000, frames: generateTailWag(1000, 50, 'fast') },
+            tail_wag_slow: { name: 'Slow Tail Wag', duration: 2000, frames: generateTailWag(2000, 40, 'slow') },
+            head_tilt: { name: 'Head Tilt', duration: 600, frames: generateHeadTilt(600, 25) },
+            walk: { name: 'Walking', duration: 2000, frames: generateWalk(2000) },
+            begging: { name: 'Begging', duration: 2700, frames: generateBegging(2700) },
+            sit: { name: 'Sitting', duration: 3600, frames: generateSit(3600) },
+            ear_twitch: { name: 'Ear Twitch', duration: 1500, frames: generateEarTwitch(1500) },
+            pant: { name: 'Panting', duration: 1800, frames: generatePanting(1800) }
+        };
+
+        // Advanced dog drawing with better proportions
+        function drawDog(motorAngles) {
+            canvas.innerHTML = '';
+            const svg = canvas;
+            const mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            mainGroup.setAttribute('transform', 'translate(250, 240)');
+
+            // Shadow
+            const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            shadow.setAttribute('cx', '0');
+            shadow.setAttribute('cy', '140');
+            shadow.setAttribute('rx', '120');
+            shadow.setAttribute('ry', '20');
+            shadow.setAttribute('fill', 'rgba(0, 0, 0, 0.1)');
+            mainGroup.appendChild(shadow);
+
+            // Calculate body sway
+            const bodySway = (motorAngles.body_sway || 0) * 0.3;
+
+            // Back legs
+            drawLeg(mainGroup, 50, 60, motorAngles.back_right || 0, 'back_right');
+            drawLeg(mainGroup, -50, 60, motorAngles.back_left || 0, 'back_left');
+
+            // Body (apply sway)
+            const bodyGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            bodyGroup.setAttribute('transform', `skewY(${bodySway * 0.05})`);
+
+            const body = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            body.setAttribute('cx', '0');
+            body.setAttribute('cy', '0');
+            body.setAttribute('rx', '100');
+            body.setAttribute('ry', '70');
+            body.setAttribute('fill', '#d4a574');
+            body.setAttribute('stroke', '#9d7d5a');
+            body.setAttribute('stroke-width', '2');
+            bodyGroup.appendChild(body);
+
+            // Spine bend effect
+            if (motorAngles.spine) {
+                const spineBend = motorAngles.spine * 0.2;
+                bodyGroup.setAttribute('transform', `skewY(${spineBend * 0.02}) skewY(${bodySway * 0.05})`);
+            }
+
+            mainGroup.appendChild(bodyGroup);
+
+            // Front legs
+            drawLeg(mainGroup, 30, 60, motorAngles.front_right || 0, 'front_right');
+            drawLeg(mainGroup, -30, 60, motorAngles.front_left || 0, 'front_left');
+
+            // Neck
+            const neckX = motorAngles.head_tilt || 0;
+            const neck = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            neck.setAttribute('cx', neckX * 0.3);
+            neck.setAttribute('cy', '-45');
+            neck.setAttribute('rx', '35');
+            neck.setAttribute('ry', '40');
+            neck.setAttribute('fill', '#d4a574');
+            neck.setAttribute('stroke', '#9d7d5a');
+            neck.setAttribute('stroke-width', '2');
+            mainGroup.appendChild(neck);
+
+            // Head
+            const headGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const headX = neckX * 0.5;
+            const headY = (motorAngles.head_vertical || 0) - 85;
+            headGroup.setAttribute('transform', `translate(${headX}, ${headY}) rotate(${neckX * 2})`);
+
+            const head = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            head.setAttribute('cx', '0');
+            head.setAttribute('cy', '0');
+            head.setAttribute('r', '45');
+            head.setAttribute('fill', '#d4a574');
+            head.setAttribute('stroke', '#9d7d5a');
+            head.setAttribute('stroke-width', '2');
+            headGroup.appendChild(head);
+
+            // Snout
+            const snoutY = (motorAngles.jaw || 0) * 0.2;
+            const snout = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            snout.setAttribute('cx', '-40');
+            snout.setAttribute('cy', snoutY + 5);
+            snout.setAttribute('rx', '28');
+            snout.setAttribute('ry', '22');
+            snout.setAttribute('fill', '#e8c9a0');
+            snout.setAttribute('stroke', '#9d7d5a');
+            snout.setAttribute('stroke-width', '1.5');
+            headGroup.appendChild(snout);
+
+            // Nose
+            const nose = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            nose.setAttribute('cx', '-55');
+            nose.setAttribute('cy', snoutY);
+            nose.setAttribute('r', '6');
+            nose.setAttribute('fill', '#3d2817');
+            headGroup.appendChild(nose);
+
+            // Nostrils
+            for (const offset of [-3, 3]) {
+                const nostril = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                nostril.setAttribute('cx', -55);
+                nostril.setAttribute('cy', snoutY + offset);
+                nostril.setAttribute('r', '1.5');
+                nostril.setAttribute('fill', '#000');
+                headGroup.appendChild(nostril);
+            }
+
+            // Eyes with reflection
+            for (const eyeX of [-18, 8]) {
+                const eye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                eye.setAttribute('cx', eyeX);
+                eye.setAttribute('cy', '-10');
+                eye.setAttribute('r', '7');
+                eye.setAttribute('fill', '#2c1810');
+                headGroup.appendChild(eye);
+
+                // Eye shine
+                const shine = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                shine.setAttribute('cx', eyeX + 2);
+                shine.setAttribute('cy', '-12');
+                shine.setAttribute('r', '2.5');
+                shine.setAttribute('fill', '#ffffff');
+                shine.setAttribute('opacity', '0.8');
+                headGroup.appendChild(shine);
+            }
+
+            // Tongue
+            if ((motorAngles.tongue || 0) > 5) {
+                const tongue = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                tongue.setAttribute('cx', '-40');
+                tongue.setAttribute('cy', snoutY + 20 + (motorAngles.tongue || 0) * 0.3);
+                tongue.setAttribute('rx', '12');
+                tongue.setAttribute('ry', '8');
+                tongue.setAttribute('fill', '#ff69b4');
+                tongue.setAttribute('opacity', '0.9');
+                headGroup.appendChild(tongue);
+            }
+
+            // Ears
+            const leftEarAngle = (motorAngles.left_ear || 0) * 1.2;
+            const rightEarAngle = (motorAngles.right_ear || 0) * 1.2;
+
+            drawEar(headGroup, -28, -42, leftEarAngle, 'left');
+            drawEar(headGroup, 18, -42, rightEarAngle, 'right');
+
+            mainGroup.appendChild(headGroup);
+
+            // Tail with curve
+            const tailAngle = motorAngles.tail || 0;
+            const tailGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            tailGroup.setAttribute('transform', `translate(95, -10) rotate(${tailAngle * 0.8})`);
+
+            const tail = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const tailCurve = `M 0 0 Q ${20 + tailAngle * 0.3} ${-30 + Math.abs(tailAngle) * 0.4} ${40 + tailAngle * 0.8} ${-60 + Math.abs(tailAngle) * 0.8}`;
+            tail.setAttribute('d', tailCurve);
+            tail.setAttribute('stroke', '#9d7d5a');
+            tail.setAttribute('stroke-width', '14');
+            tail.setAttribute('fill', 'none');
+            tail.setAttribute('stroke-linecap', 'round');
+            tail.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+            tailGroup.appendChild(tail);
+
+            mainGroup.appendChild(tailGroup);
+
+            svg.appendChild(mainGroup);
+        }
+
+        function drawLeg(parent, x, y, angle, legType) {
+            const legGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            legGroup.setAttribute('transform', `translate(${x}, ${y})`);
+
+            const legLength = 50;
+            const legAngle = angle * 0.6;
+
+            // Thigh
+            const thighX = Math.sin(legAngle * Math.PI / 180) * 15;
+            const thighY = Math.cos(legAngle * Math.PI / 180) * 15;
+
+            const thigh = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            thigh.setAttribute('x1', '0');
+            thigh.setAttribute('y1', '0');
+            thigh.setAttribute('x2', thighX);
+            thigh.setAttribute('y2', thighY);
+            thigh.setAttribute('stroke', '#9d7d5a');
+            thigh.setAttribute('stroke-width', '16');
+            thigh.setAttribute('stroke-linecap', 'round');
+            legGroup.appendChild(thigh);
+
+            // Leg
+            const legX = thighX + Math.sin(legAngle * Math.PI / 180) * legLength;
+            const legY = thighY + Math.cos(legAngle * Math.PI / 180) * legLength;
+
+            const leg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            leg.setAttribute('x1', thighX);
+            leg.setAttribute('y1', thighY);
+            leg.setAttribute('x2', legX);
+            leg.setAttribute('y2', legY);
+            leg.setAttribute('stroke', '#8b6f47');
+            leg.setAttribute('stroke-width', '12');
+            leg.setAttribute('stroke-linecap', 'round');
+            legGroup.appendChild(leg);
+
+            // Paw
+            const paw = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            paw.setAttribute('cx', legX);
+            paw.setAttribute('cy', legY);
+            paw.setAttribute('r', '8');
+            paw.setAttribute('fill', '#8b6f47');
+            legGroup.appendChild(paw);
+
+            // Paw pads
+            for (let i = 0; i < 4; i++) {
+                const pad = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                pad.setAttribute('cx', legX + Math.cos((i / 4) * Math.PI * 2) * 4);
+                pad.setAttribute('cy', legY + Math.sin((i / 4) * Math.PI * 2) * 4);
+                pad.setAttribute('r', '2');
+                pad.setAttribute('fill', '#6b5437');
+                legGroup.appendChild(pad);
+            }
+
+            parent.appendChild(legGroup);
+        }
+
+        function drawEar(parent, x, y, angle, side) {
+            const ear = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            ear.setAttribute('cx', x);
+            ear.setAttribute('cy', y);
+            ear.setAttribute('rx', '16');
+            ear.setAttribute('ry', '35');
+            ear.setAttribute('fill', '#c9906e');
+            ear.setAttribute('stroke', '#9d7d5a');
+            ear.setAttribute('stroke-width', '1.5');
+            ear.setAttribute('transform', `rotate(${angle} ${x} ${y})`);
+            parent.appendChild(ear);
+
+            // Inner ear
+            const innerEar = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            innerEar.setAttribute('cx', x);
+            innerEar.setAttribute('cy', y);
+            innerEar.setAttribute('rx', '8');
+            innerEar.setAttribute('ry', '22');
+            innerEar.setAttribute('fill', '#e8c9a0');
+            innerEar.setAttribute('transform', `rotate(${angle} ${x} ${y})`);
+            parent.appendChild(innerEar);
+        }
+
+        function loadPreset(presetKey) {
+            const preset = presets[presetKey];
+            if (preset) {
+                motionFrames = preset.frames;
+                jsonInput.value = JSON.stringify(preset.frames, null, 2);
+                currentPreset = presetKey;
+                updatePresetButtons(presetKey);
+                statusDiv.textContent = `✓ Loaded: ${preset.name}`;
+                statusDiv.className = 'status';
+            }
+        }
+
+        function updatePresetButtons(activeKey) {
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (activeKey) {
+                event.target.classList.add('active');
+            }
+        }
+
+        function parseJsonInput() {
+            try {
+                const input = jsonInput.value.trim();
+                if (!input) {
+                    statusDiv.textContent = '❌ Please paste JSON or select a preset';
+                    statusDiv.className = 'status error';
+                    return false;
+                }
+
+                motionFrames = JSON.parse(input);
+
+                if (!Array.isArray(motionFrames) || motionFrames.length === 0) {
+                    throw new Error('Must be a non-empty JSON array');
+                }
+
+                statusDiv.textContent = `✓ Loaded ${motionFrames.length} frames`;
+                statusDiv.className = 'status';
+                return true;
+            } catch (error) {
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                statusDiv.className = 'status error';
+                return false;
+            }
+        }
+
+        function playAnimation() {
+            if (!parseJsonInput()) return;
+
+            isPlaying = true;
+            startTime = performance.now();
+            statusDiv.textContent = '▶ Playing animation...';
+            statusDiv.className = 'status playing';
+
+            animate();
+        }
+
+        function animate() {
+            if (!isPlaying || motionFrames.length === 0) return;
+
+            const elapsed = performance.now() - startTime;
+            const speed = parseFloat(speedControl.value);
+            const totalDuration = motionFrames[motionFrames.length - 1].timestamp_ms;
+            const adjustedTime = (elapsed / speed) % totalDuration;
+
+            // Find current frame
+            let frameIndex = 0;
+            for (let i = 0; i < motionFrames.length - 1; i++) {
+                if (motionFrames[i].timestamp_ms <= adjustedTime) {
+                    frameIndex = i;
+                }
+            }
+
+            // Linear interpolation between frames
+            const currentFrame = motionFrames[frameIndex];
+            const nextFrame = motionFrames[Math.min(frameIndex + 1, motionFrames.length - 1)];
+            const frameDuration = nextFrame.timestamp_ms - currentFrame.timestamp_ms || 1;
+            const frameProgress = (adjustedTime - currentFrame.timestamp_ms) / frameDuration;
+
+            const interpolatedAngles = {};
+            for (const [motor, angle] of Object.entries(currentFrame.motor_angles)) {
+                const nextAngle = nextFrame.motor_angles[motor] || 0;
+                interpolatedAngles[motor] = angle + (nextAngle - angle) * Math.min(frameProgress, 1);
+            }
+
+            drawDog(interpolatedAngles);
+            updateMotorDisplay(frameIndex, interpolatedAngles);
+            updateProgressBar(adjustedTime, totalDuration);
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function updateMotorDisplay(frameIndex, angles) {
+            let display = `Frame ${frameIndex + 1}/${motionFrames.length}\n`;
+            display += `Time: ${motionFrames[frameIndex].timestamp_ms.toFixed(0)}ms\n\n`;
+
+            for (const [motor, angle] of Object.entries(angles)) {
+                const bar = '█'.repeat(Math.max(0, Math.round(Math.abs(angle) / 5))) + '░'.repeat(20 - Math.max(0, Math.round(Math.abs(angle) / 5)));
+                display += `${motor.padEnd(12)}: ${angle.toFixed(1).padStart(7)}° [${bar}]\n`;
+            }
+
+            motorDisplay.textContent = display;
+        }
+
+        function updateProgressBar(current, total) {
+            const percent = (current / total) * 100;
+            progressFill.style.width = percent + '%';
+        }
+
+        function resetAnimation() {
+            isPlaying = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            progressFill.style.width = '0%';
+            motorDisplay.textContent = 'Ready to animate...';
+            statusDiv.textContent = 'Stopped';
+            statusDiv.className = 'status';
+            drawDog({});
+        }
+
+        function clearAll() {
+            resetAnimation();
+            jsonInput.value = '';
+            motionFrames = [];
+            currentPreset = null;
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        speedControl.addEventListener('input', (e) => {
+            speedLabel.textContent = e.target.value + 'x';
+        });
+
+        // Initialize
+        drawDog({});
+    </script>
+</body>
+</html>

@@ -58,6 +58,11 @@ from dogmove import (
     MotionFrame,
 )
 
+try:
+    from animation_exporter import AnimationRecorder
+except ImportError:
+    AnimationRecorder = None
+
 
 def record_audio(
     duration: int = 5,
@@ -484,7 +489,7 @@ async def execute_llm_movements(movement_commands: list[str]) -> dict:
         movement_commands: 動きコマンド文字列のリスト
 
     Returns:
-        実行ステータスとフレームカウントの辞書
+        実行ステータス、フレームカウント、および実際のフレームの辞書
     """
     execution_results = {}
 
@@ -493,6 +498,7 @@ async def execute_llm_movements(movement_commands: list[str]) -> dict:
         execution_results[cmd] = {
             "frames": len(frames),
             "duration_ms": frames[-1].timestamp_ms if frames else 0,
+            "frame_data": frames,
         }
 
     return execution_results
@@ -507,6 +513,7 @@ async def process_single_turn(
     play_response: bool = True,
     turn_number: int = 1,
     enable_dog_movements: bool = True,
+    animation_recorder = None,
 ) -> dict:
     """1つの会話ターンを処理する: STT → LLM → 犬の動き → TTS → 再生。
 
@@ -518,6 +525,7 @@ async def process_single_turn(
         system_prompt: LLMのシステムプロンプト
         play_response: 音声応答を再生するかどうか
         turn_number: 表示用のターン番号
+        animation_recorder: 動きをエクスポートするためのオプションのAnimationRecorder
         enable_dog_movements: LLMから犬の動きを有効にするかどうか
 
     Returns:
@@ -567,6 +575,16 @@ async def process_single_turn(
         for cmd, result in movement_results.items():
             print(f"  {cmd}: {result['frames']} フレーム, {result['duration_ms']}ms")
 
+        # 動きが利用可能な場合は記録
+        if animation_recorder:
+            for cmd, result in movement_results.items():
+                animation_recorder.record_movement(
+                    movement_name=cmd.split(':')[0],
+                    frames=result['frame_data'],
+                    response_text=response,
+                    turn_number=turn_number
+                )
+
     # ステップ4: TTS
     print("\n[4/5] テキスト音声合成（Edge TTS）")
     print("-" * 60)
@@ -605,6 +623,7 @@ async def interactive_audio_chat_with_dog(
     system_prompt: str = "あなたは親切なアシスタントです。",
     play_response: bool = True,
     enable_dog_movements: bool = True,
+    animation_recorder = None,
 ) -> None:
     """犬の動きを持つインタラクティブ音声チャットループ。
 
@@ -616,6 +635,7 @@ async def interactive_audio_chat_with_dog(
         sample_rate: サンプリングレート（Hz）
         ollama_url: OllamaサーバーのURL
         whisper_model: Whisperモデルサイズ
+        animation_recorder: 動きをエクスポートするためのオプションのAnimationRecorder
         llm_model: LLMモデル名
         system_prompt: LLMのシステムプロンプト
         play_response: 音声応答を再生するかどうか
@@ -649,6 +669,7 @@ async def interactive_audio_chat_with_dog(
                 play_response=play_response,
                 turn_number=turn,
                 enable_dog_movements=enable_dog_movements,
+                animation_recorder=animation_recorder,
             )
 
             # ユーザーが終了したいかどうかを確認
@@ -656,6 +677,13 @@ async def interactive_audio_chat_with_dog(
                 print("\n" + "=" * 60)
                 print("さようなら!")
                 print("=" * 60)
+                # レコーダーがアクティブな場合はアニメーションを保存
+                if animation_recorder:
+                    print("\nアニメーションを保存しています...")
+                    saved_files = animation_recorder.save_all()
+                    print(f"✓ {len(saved_files)}個のアニメーションファイルを保存しました")
+                    for file_path in saved_files:
+                        print(f"  - {file_path}")
                 break
 
             turn += 1
@@ -848,11 +876,31 @@ def main():
         action="store_true",
         help="インタラクティブチャットモード（「さようなら」まで繰り返す）",
     )
+    parser.add_argument(
+        "--export-animations",
+        action="store_true",
+        help="犬の動きをJSONファイルとしてエクスポート（--interactive が必要）",
+    )
+    parser.add_argument(
+        "--animations-dir",
+        default="dog_animations",
+        help="アニメーションJSONファイルを保存するディレクトリ（デフォルト: dog_animations）",
+    )
 
     args = parser.parse_args()
     enable_movements = not args.disable_dog_movements
 
     try:
+        # アニメーションレコーダーを作成（リクエストされた場合）
+        animation_recorder = None
+        if args.export_animations:
+            if not AnimationRecorder:
+                print("エラー: animation_exporter モジュールが利用できません")
+                print("同じディレクトリに animation_exporter.py があることを確認してください")
+                sys.exit(1)
+            animation_recorder = AnimationRecorder(export_dir=args.animations_dir)
+            print(f"✓ アニメーション記録を有効にしました（保存先: {args.animations_dir}）")
+
         # インタラクティブモード
         if args.interactive:
             asyncio.run(
@@ -865,6 +913,7 @@ def main():
                     system_prompt=args.prompt,
                     play_response=not args.no_play,
                     enable_dog_movements=enable_movements,
+                    animation_recorder=animation_recorder,
                 )
             )
             return

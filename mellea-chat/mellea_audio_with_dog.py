@@ -58,6 +58,11 @@ from dogmove import (
     MotionFrame,
 )
 
+try:
+    from animation_exporter import AnimationRecorder
+except ImportError:
+    AnimationRecorder = None
+
 
 def record_audio(
     duration: int = 5,
@@ -466,7 +471,7 @@ async def execute_llm_movements(movement_commands: list[str]) -> dict:
         movement_commands: List of movement command strings
 
     Returns:
-        Dict with execution status and frame counts
+        Dict with execution status, frame counts, and actual frames
     """
     execution_results = {}
 
@@ -475,6 +480,7 @@ async def execute_llm_movements(movement_commands: list[str]) -> dict:
         execution_results[cmd] = {
             "frames": len(frames),
             "duration_ms": frames[-1].timestamp_ms if frames else 0,
+            "frame_data": frames,
         }
 
     return execution_results
@@ -489,6 +495,7 @@ async def process_single_turn(
     play_response: bool = True,
     turn_number: int = 1,
     enable_dog_movements: bool = True,
+    animation_recorder = None,
 ) -> dict:
     """Process a single conversation turn: STT → LLM → Dog Movements → TTS → Play.
 
@@ -501,6 +508,7 @@ async def process_single_turn(
         play_response: Whether to play audio response
         turn_number: Turn number for display
         enable_dog_movements: Whether to enable dog movements from LLM
+        animation_recorder: Optional AnimationRecorder for exporting movements
 
     Returns:
         Dict with transcription, response, and exit flag
@@ -549,6 +557,16 @@ async def process_single_turn(
         for cmd, result in movement_results.items():
             print(f"  {cmd}: {result['frames']} frames, {result['duration_ms']}ms")
 
+        # Record movements if recorder is available
+        if animation_recorder:
+            for cmd, result in movement_results.items():
+                animation_recorder.record_movement(
+                    movement_name=cmd.split(':')[0],
+                    frames=result['frame_data'],
+                    response_text=response,
+                    turn_number=turn_number
+                )
+
     # Step 4: TTS
     print("\n[4/5] Text-to-Speech (Edge TTS)")
     print("-" * 60)
@@ -587,6 +605,7 @@ async def interactive_audio_chat_with_dog(
     system_prompt: str = "You are a helpful assistant.",
     play_response: bool = True,
     enable_dog_movements: bool = True,
+    animation_recorder = None,
 ) -> None:
     """Interactive audio chat loop with dog movements.
 
@@ -602,6 +621,7 @@ async def interactive_audio_chat_with_dog(
         system_prompt: System prompt for LLM
         play_response: Whether to play audio responses
         enable_dog_movements: Whether to enable dog movements from LLM
+        animation_recorder: Optional AnimationRecorder for exporting movements
     """
     print("\n" + "=" * 60)
     print("INTERACTIVE AUDIO CHAT WITH DOG MOVEMENTS")
@@ -631,6 +651,7 @@ async def interactive_audio_chat_with_dog(
                 play_response=play_response,
                 turn_number=turn,
                 enable_dog_movements=enable_dog_movements,
+                animation_recorder=animation_recorder,
             )
 
             # Check if user wants to exit
@@ -638,6 +659,13 @@ async def interactive_audio_chat_with_dog(
                 print("\n" + "=" * 60)
                 print("GOODBYE!")
                 print("=" * 60)
+                # Save animations if recorder is active
+                if animation_recorder:
+                    print("\nSaving animations...")
+                    saved_files = animation_recorder.save_all()
+                    print(f"✓ Saved {len(saved_files)} animation files")
+                    for file_path in saved_files:
+                        print(f"  - {file_path}")
                 break
 
             turn += 1
@@ -830,11 +858,31 @@ def main():
         action="store_true",
         help="Run in interactive chat mode (repeat until 'bye')",
     )
+    parser.add_argument(
+        "--export-animations",
+        action="store_true",
+        help="Export dog movements as JSON files (requires --interactive)",
+    )
+    parser.add_argument(
+        "--animations-dir",
+        default="dog_animations",
+        help="Directory to save animation JSON files (default: dog_animations)",
+    )
 
     args = parser.parse_args()
     enable_movements = not args.disable_dog_movements
 
     try:
+        # Create animation recorder if requested
+        animation_recorder = None
+        if args.export_animations:
+            if not AnimationRecorder:
+                print("Error: animation_exporter module not available")
+                print("Make sure animation_exporter.py is in the same directory")
+                sys.exit(1)
+            animation_recorder = AnimationRecorder(export_dir=args.animations_dir)
+            print(f"✓ Animation recording enabled (saving to {args.animations_dir})")
+
         # Interactive mode
         if args.interactive:
             asyncio.run(
@@ -847,6 +895,7 @@ def main():
                     system_prompt=args.prompt,
                     play_response=not args.no_play,
                     enable_dog_movements=enable_movements,
+                    animation_recorder=animation_recorder,
                 )
             )
             return
