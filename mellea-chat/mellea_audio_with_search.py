@@ -45,7 +45,7 @@ except ImportError:
 
 def record_audio(
     duration: int = 5,
-    sample_rate: int = 16000,
+    sample_rate: int = 48000,
     channels: int = 1,
 ) -> np.ndarray:
     """Record audio from microphone.
@@ -418,7 +418,8 @@ def play_audio(audio_bytes: bytes):
         if sys.platform == "darwin":  # macOS
             subprocess.run(["afplay", tmp_path], check=True)
         elif sys.platform == "linux":
-            subprocess.run(["aplay", tmp_path], check=True)
+            # subprocess.run(["aplay", tmp_path], check=True)
+            subprocess.run(["mpg123", "-q", tmp_path], check=True)
         elif sys.platform == "win32":
             import winsound
             winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
