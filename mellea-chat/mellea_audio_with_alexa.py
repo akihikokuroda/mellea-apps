@@ -363,7 +363,7 @@ def play_audio(audio_bytes: bytes):
         if sys.platform == "darwin":
             subprocess.run(["afplay", tmp_path], check=True)
         elif sys.platform == "linux":
-            subprocess.run(["aplay", tmp_path], check=True)
+            subprocess.run(["mpg123", "-q", tmp_path], check=True)
         elif sys.platform == "win32":
             import winsound
             winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
