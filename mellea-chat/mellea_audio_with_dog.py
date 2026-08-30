@@ -17,14 +17,6 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from pydub import AudioSegment
-    from pydub.generators import Sine
-except ImportError:
-    print("Error: pydub not installed")
-    print("Install with: pip install pydub")
-    sys.exit(1)
-
-try:
     import edge_tts
     import asyncio as aio
 except ImportError:
