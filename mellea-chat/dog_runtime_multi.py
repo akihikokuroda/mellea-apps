@@ -13,6 +13,7 @@ from collections import deque
 
 from dog_scheduler_multi import MultiDogScheduler, DogInstance
 from dog_orchestrator_multi import MultiDogOrchestrator
+from dog_interaction_detector import InteractionDetector
 from hardware_interface import DogHardwareInterface, create_hardware_interface
 from dogmove import MotionFrame
 
@@ -77,6 +78,7 @@ class MultiDogRuntime:
         """
         self.scheduler = MultiDogScheduler(dog_count=dog_count)
         self.orchestrator = MultiDogOrchestrator()
+        self.interaction_detector = InteractionDetector()
         self.hardware = hardware_interface or create_hardware_interface("simulation")
         self.command_queue = MultiDogCommandQueue()
 
@@ -146,6 +148,7 @@ class MultiDogRuntime:
         Execute one behavior cycle for a single dog.
 
         Runs independently in its own task, sleeps for behavior duration.
+        Handles both solo and interactive behaviors.
 
         Args:
             dog_id: Dog identifier
@@ -165,7 +168,11 @@ class MultiDogRuntime:
             await self._log_state(
                 f"cycle_{next_state.value}",
                 dog_id,
-                {"duration_ms": duration_ms}
+                {
+                    "duration_ms": duration_ms,
+                    "interaction_target": dog.scheduler.metrics.interaction_target,
+                    "interaction_type": dog.scheduler.metrics.interaction_type,
+                },
             )
 
             # Get movement frames for this dog
@@ -173,10 +180,23 @@ class MultiDogRuntime:
             intensity_map = {dog_id: 0.7}
             duration_map = {dog_id: duration_ms}
 
+            # Include interaction pair info if dog is in an interaction
+            interaction_pairs = None
+            if (
+                dog.scheduler.metrics.interaction_target
+                and dog.scheduler.metrics.interaction_type
+            ):
+                interaction_target = dog.scheduler.metrics.interaction_target
+                interaction_type = dog.scheduler.metrics.interaction_type
+                # Only include pair once (avoid duplicates)
+                if dog_id < interaction_target:
+                    interaction_pairs = [(dog_id, interaction_target, interaction_type)]
+
             movements = self.orchestrator.get_movements_for_all_dogs(
                 dog_behaviors=dog_behaviors,
                 intensity_map=intensity_map,
                 duration_map=duration_map,
+                interaction_pairs=interaction_pairs,
             )
 
             if movements:
@@ -195,6 +215,7 @@ class MultiDogRuntime:
         Execute one cycle for all dogs concurrently.
 
         Each dog runs its own behavior independently in parallel.
+        Detects and initiates dog-to-dog interactions.
 
         Args:
             cycle_num: Cycle number for logging
@@ -205,10 +226,39 @@ class MultiDogRuntime:
         if not self.is_running:
             return False
 
+        # Detect nearby dogs and suggest interactions
+        nearby_dogs = self.interaction_detector.detect_nearby_dogs(self.scheduler)
+        interaction_suggestions = self.interaction_detector.suggest_interactions(
+            self.scheduler, nearby_dogs, interaction_probability=0.25
+        )
+
+        # Initiate suggested interactions
+        for dog_1_id, dog_2_id, interaction_type in interaction_suggestions:
+            if self.scheduler.initiate_interaction(dog_1_id, dog_2_id, interaction_type):
+                await self._log_state(
+                    "interaction_start",
+                    dog_1_id,
+                    {
+                        "partner": dog_2_id,
+                        "interaction_type": interaction_type,
+                    },
+                )
+                await self._log_state(
+                    "interaction_start",
+                    dog_2_id,
+                    {
+                        "partner": dog_1_id,
+                        "interaction_type": interaction_type,
+                    },
+                )
+
         # Run all dogs' cycles concurrently
         dog_ids = list(self.scheduler.get_all_dogs().keys())
         tasks = [self._run_dog_cycle(dog_id, cycle_num) for dog_id in dog_ids]
         await asyncio.gather(*tasks)
+
+        # Update interaction states
+        self.scheduler.update_interactions(elapsed_map={dog_id: 3000 for dog_id in dog_ids})
 
         return True
 

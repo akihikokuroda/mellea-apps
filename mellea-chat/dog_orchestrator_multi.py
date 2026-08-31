@@ -8,6 +8,11 @@ from typing import Optional
 from dog_scheduler import DogState, DogStateMetrics
 from dog_behavior_orchestrator import BehaviorOrchestrator
 from dogmove import MotionFrame
+from dog_interaction_movements import (
+    chase_sequence,
+    play_together_sequence,
+    interacting_sequence,
+)
 
 
 class MultiDogOrchestrator:
@@ -27,14 +32,18 @@ class MultiDogOrchestrator:
         dog_behaviors: dict[str, DogState],
         intensity_map: Optional[dict[str, float]] = None,
         duration_map: Optional[dict[str, int]] = None,
+        interaction_pairs: Optional[list[tuple[str, str, str]]] = None,
     ) -> list[MotionFrame]:
         """
         Generate movement sequences for multiple dogs with prefixed motor IDs.
+
+        Supports both individual behaviors and coordinated interactions.
 
         Args:
             dog_behaviors: Mapping of dog_id → DogState (e.g., {"dog_1": DogState.PLAYING})
             intensity_map: Optional mapping of dog_id → intensity (0.0-1.0)
             duration_map: Optional mapping of dog_id → duration_ms
+            interaction_pairs: Optional list of (dog_1_id, dog_2_id, interaction_type) tuples
 
         Returns:
             Merged list of MotionFrame objects with prefixed motor IDs
@@ -49,9 +58,43 @@ class MultiDogOrchestrator:
         if duration_map is None:
             duration_map = {dog_id: 3000 for dog_id in dog_behaviors.keys()}
 
-        # Collect movements for each dog
+        # Track which dogs are in interactions
+        dogs_in_interaction = set()
+        interaction_movements: list[MotionFrame] = []
+
+        # Handle interaction pairs with synchronized movements
+        if interaction_pairs:
+            for dog_1_id, dog_2_id, interaction_type in interaction_pairs:
+                if dog_1_id not in dog_behaviors or dog_2_id not in dog_behaviors:
+                    continue
+
+                intensity = min(
+                    intensity_map.get(dog_1_id, 0.7),
+                    intensity_map.get(dog_2_id, 0.7),
+                )
+                duration = min(
+                    duration_map.get(dog_1_id, 3000),
+                    duration_map.get(dog_2_id, 3000),
+                )
+
+                # Generate interaction-specific movements
+                if interaction_type == "chase":
+                    movements = chase_sequence(dog_1_id, dog_2_id, duration, intensity)
+                elif interaction_type == "play_together":
+                    movements = play_together_sequence(dog_1_id, dog_2_id, duration, intensity)
+                else:  # "interacting" or generic
+                    movements = interacting_sequence(dog_1_id, dog_2_id, duration, interaction_type)
+
+                interaction_movements.extend(movements)
+                dogs_in_interaction.add(dog_1_id)
+                dogs_in_interaction.add(dog_2_id)
+
+        # Collect movements for each dog not in interactions
         all_movements: list[list[MotionFrame]] = []
         for dog_id, dog_state in dog_behaviors.items():
+            if dog_id in dogs_in_interaction:
+                continue
+
             intensity = intensity_map.get(dog_id, 0.7)
             duration = duration_map.get(dog_id, 3000)
 
@@ -65,6 +108,10 @@ class MultiDogOrchestrator:
             # Prefix motor IDs with dog_id
             prefixed_movements = self._prefix_movements(movements, dog_id)
             all_movements.append(prefixed_movements)
+
+        # Add interaction movements to collection
+        if interaction_movements:
+            all_movements.append(interaction_movements)
 
         # Merge all movements into a single timeline
         merged = self._merge_movements(all_movements)
