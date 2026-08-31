@@ -1,0 +1,31 @@
+{
+  "scenario": "Begging",
+  "user_input": "Person has treats",
+  "llm_response": "Can I have a treat please? Pretty please?\n[MOVE: beg:hip_angle=90,paw_lift=35,hold_time=2000]\nI promise I've been a good dog!\n[MOVE: pant:jaw_travel=15,cycles=4,cycle_duration=200]\n",
+  "emotional_tone": "Hopeful, eager",
+  "total_duration_ms": 3300,
+  "movements": {
+    "begging_pose": {
+      "frame_count": 27,
+      "duration_ms": 3000.0,
+      "first_frame": {
+        "hip": 0.0,
+        "front_paw": 0.0
+      },
+      "last_frame": {
+        "hip": 5.5109105961630896e-15,
+        "front_paw": 2.1431318985078682e-15
+      }
+    },
+    "happy_panting": {
+      "frame_count": 25,
+      "duration_ms": 800.0,
+      "first_frame": {
+        "jaw": 0.0
+      },
+      "last_frame": {
+        "jaw": 0.0
+      }
+    }
+  }
+}

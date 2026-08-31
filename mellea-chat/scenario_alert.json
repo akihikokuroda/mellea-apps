@@ -1,0 +1,47 @@
+{
+  "scenario": "Alert",
+  "user_input": "Noise detected",
+  "llm_response": "Wait, what was that? I heard something!\n[MOVE: ear_twitch:type=flaring,count=5,frequency=7]\n[MOVE: head_tilt:angle=25,duration=800]\n[MOVE: walk:gait=steady_walk,strides=2,stride_length=40]\n",
+  "emotional_tone": "Alert, cautious",
+  "total_duration_ms": 2000,
+  "movements": {
+    "ears_alert": {
+      "frame_count": 41,
+      "duration_ms": 714.2857142857143,
+      "first_frame": {
+        "left_ear": -0.0,
+        "right_ear": 0.0
+      },
+      "last_frame": {
+        "left_ear": 0.0,
+        "right_ear": 0.0
+      }
+    },
+    "head_focused": {
+      "frame_count": 13,
+      "duration_ms": 800.0,
+      "first_frame": {
+        "head": 0.0
+      },
+      "last_frame": {
+        "head": 3.061616997868383e-15
+      }
+    },
+    "walk_cautious": {
+      "frame_count": 17,
+      "duration_ms": 1000.0,
+      "first_frame": {
+        "front_left": 0.0,
+        "front_right": 0.0,
+        "back_left": 0.0,
+        "back_right": 0.0
+      },
+      "last_frame": {
+        "front_left": 0.0,
+        "front_right": 0.0,
+        "back_left": 0.0,
+        "back_right": 0.0
+      }
+    }
+  }
+}

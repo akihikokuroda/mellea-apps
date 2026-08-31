@@ -1,0 +1,47 @@
+{
+  "scenario": "Greeting",
+  "user_input": "Person enters",
+  "llm_response": "Oh boy, someone's here! I'm so excited to see you!\n[MOVE: tail_wag:style=fast_loose,duration=1500]\n[MOVE: ear_twitch:type=vertical,count=4,frequency=6]\nLet me wiggle around!\n[MOVE: walk:gait=fast_trot,strides=3,stride_length=60]\n",
+  "emotional_tone": "Excited, energetic",
+  "total_duration_ms": 3066,
+  "movements": {
+    "tail_wag_excited": {
+      "frame_count": 33,
+      "duration_ms": 1500.0,
+      "first_frame": {
+        "tail": 22.5
+      },
+      "last_frame": {
+        "tail": 0.0
+      }
+    },
+    "ears_alert": {
+      "frame_count": 33,
+      "duration_ms": 666.6666666666666,
+      "first_frame": {
+        "left_ear": 0.0,
+        "right_ear": 0.0
+      },
+      "last_frame": {
+        "left_ear": 0.0,
+        "right_ear": 0.0
+      }
+    },
+    "trot_playful": {
+      "frame_count": 19,
+      "duration_ms": 900.0,
+      "first_frame": {
+        "front_left": 0.0,
+        "front_right": -12.0,
+        "back_left": -12.0,
+        "back_right": 0.0
+      },
+      "last_frame": {
+        "front_left": 0.0,
+        "front_right": 0.0,
+        "back_left": 0.0,
+        "back_right": 0.0
+      }
+    }
+  }
+}
