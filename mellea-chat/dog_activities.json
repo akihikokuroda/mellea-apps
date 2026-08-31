@@ -1,0 +1,314 @@
+{
+  "dog_activities": {
+    "sleeping": {
+      "body_position": "side_lying",
+      "description": "Deep sleep or napping",
+      "duration_range": [
+        300000,
+        3600000
+      ],
+      "movements": [
+        "occasional_ear_twitch",
+        "position_shift_every_5min",
+        "REM_jerks_randomly"
+      ],
+      "motors_involved": [
+        "head",
+        "ears",
+        "body"
+      ],
+      "energy_cost": 0,
+      "energy_gain": 15,
+      "hunger_increase": 5,
+      "typical_behaviors": "dreams, stretches, repositions"
+    },
+    "alert": {
+      "body_position": "standing_attentive",
+      "description": "Awake and aware, watching surroundings",
+      "duration_range": [
+        5000,
+        20000
+      ],
+      "movements": [
+        "head_tilts_and_scans",
+        "ear_flares",
+        "occasional_body_shifts"
+      ],
+      "motors_involved": [
+        "head",
+        "ears",
+        "body"
+      ],
+      "energy_cost": 2,
+      "energy_gain": 0,
+      "hunger_increase": 1,
+      "typical_behaviors": "looks around, listens, ears perk up"
+    },
+    "playing": {
+      "body_position": "standing_dynamic",
+      "description": "Active play, high energy",
+      "duration_range": [
+        10000,
+        45000
+      ],
+      "movements": [
+        "tail_wagging_fast",
+        "walking_or_trotting",
+        "begging_poses",
+        "head_tilts",
+        "spinning"
+      ],
+      "motors_involved": [
+        "tail",
+        "all_legs",
+        "head",
+        "ears",
+        "rear_legs"
+      ],
+      "energy_cost": 20,
+      "energy_gain": 0,
+      "hunger_increase": 3,
+      "typical_behaviors": "runs, jumps, play bows, wags tail excitedly"
+    },
+    "resting": {
+      "body_position": "lying_down",
+      "description": "Relaxed rest, low energy",
+      "duration_range": [
+        30000,
+        120000
+      ],
+      "movements": [
+        "slow_breathing",
+        "occasional_repositioning",
+        "head_droops",
+        "subtle_ear_movements"
+      ],
+      "motors_involved": [
+        "head",
+        "chest",
+        "ears"
+      ],
+      "energy_cost": 1,
+      "energy_gain": 8,
+      "hunger_increase": 0,
+      "typical_behaviors": "naps, dozes, shifts position occasionally"
+    },
+    "exploring": {
+      "body_position": "standing_variable",
+      "description": "Curious exploration, medium energy",
+      "duration_range": [
+        15000,
+        60000
+      ],
+      "movements": [
+        "varied_walks",
+        "head_turns_and_scans",
+        "sniffing_motions",
+        "ear_flares"
+      ],
+      "motors_involved": [
+        "all_legs",
+        "head",
+        "ears",
+        "nose"
+      ],
+      "energy_cost": 12,
+      "energy_gain": 0,
+      "hunger_increase": 2,
+      "typical_behaviors": "sniffs, walks around, checks things out"
+    },
+    "eating": {
+      "body_position": "head_down",
+      "description": "Feeding time",
+      "duration_range": [
+        5000,
+        15000
+      ],
+      "movements": [
+        "head_down",
+        "jaw_movements",
+        "occasional_head_raises",
+        "swallowing_motion"
+      ],
+      "motors_involved": [
+        "head",
+        "jaw"
+      ],
+      "energy_cost": 1,
+      "energy_gain": 0,
+      "hunger_increase": -50,
+      "typical_behaviors": "eats, chews, occasionally looks up"
+    },
+    "scratching": {
+      "body_position": "standing_or_sitting",
+      "description": "Self-grooming and scratching",
+      "duration_range": [
+        3000,
+        10000
+      ],
+      "movements": [
+        "rear_leg_scratch",
+        "body_contortions",
+        "head_turns",
+        "stretching"
+      ],
+      "motors_involved": [
+        "rear_legs",
+        "spine",
+        "head",
+        "front_paws"
+      ],
+      "energy_cost": 5,
+      "energy_gain": 0,
+      "hunger_increase": 0,
+      "typical_behaviors": "scratches itches, twists, stretches"
+    },
+    "grooming": {
+      "body_position": "sitting_or_lying",
+      "description": "Self-cleaning and grooming routine",
+      "duration_range": [
+        10000,
+        30000
+      ],
+      "movements": [
+        "licking_simulation",
+        "ear_cleaning",
+        "body_straightening",
+        "head_turns"
+      ],
+      "motors_involved": [
+        "head",
+        "jaw",
+        "ears",
+        "spine"
+      ],
+      "energy_cost": 3,
+      "energy_gain": 0,
+      "hunger_increase": 0,
+      "typical_behaviors": "licks paws, cleans ears, straightens fur"
+    }
+  },
+  "motor_capabilities": {
+    "head": {
+      "range_degrees": [
+        -45,
+        45
+      ],
+      "speed_degrees_per_second": 90
+    },
+    "tail": {
+      "range_degrees": [
+        -45,
+        45
+      ],
+      "speed_degrees_per_second": 120
+    },
+    "left_ear": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 150
+    },
+    "right_ear": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 150
+    },
+    "jaw": {
+      "range_degrees": [
+        -20,
+        20
+      ],
+      "speed_degrees_per_second": 180
+    },
+    "hip": {
+      "range_degrees": [
+        -20,
+        90
+      ],
+      "speed_degrees_per_second": 60
+    },
+    "front_paw": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 100
+    },
+    "rear_legs": {
+      "range_degrees": [
+        -45,
+        45
+      ],
+      "speed_degrees_per_second": 80
+    },
+    "front_left": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 100
+    },
+    "front_right": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 100
+    },
+    "back_left": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 100
+    },
+    "back_right": {
+      "range_degrees": [
+        -30,
+        30
+      ],
+      "speed_degrees_per_second": 100
+    },
+    "spine": {
+      "range_degrees": [
+        -20,
+        20
+      ],
+      "speed_degrees_per_second": 70
+    }
+  },
+  "behavior_transitions": {
+    "sleeping_to_alert": {
+      "duration_ms": 300,
+      "description": "Wake up and stretch"
+    },
+    "alert_to_playing": {
+      "duration_ms": 200,
+      "description": "Quick energy burst"
+    },
+    "playing_to_resting": {
+      "duration_ms": 500,
+      "description": "Slow down and cool off"
+    },
+    "resting_to_exploring": {
+      "duration_ms": 300,
+      "description": "Stand up and look around"
+    },
+    "exploring_to_eating": {
+      "duration_ms": 400,
+      "description": "Approach food"
+    },
+    "eating_to_resting": {
+      "duration_ms": 200,
+      "description": "Settle after eating"
+    },
+    "playing_to_sleeping": {
+      "duration_ms": 1000,
+      "description": "Wind down from play"
+    }
+  }
+}

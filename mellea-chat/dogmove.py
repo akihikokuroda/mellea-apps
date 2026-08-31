@@ -620,3 +620,418 @@ def sit(
         ))
 
     return frames
+
+
+def stretch(
+    direction: Literal["downward", "upward"],
+    intensity: float = 1.0,
+    duration_ms: float = 1500.0,
+    front_shoulder_motor_id: str = "front_shoulder",
+    rear_leg_motor_id: str = "rear_legs",
+    spine_motor_id: str = "spine",
+    front_paw_motor_id: str = "front_paw",
+) -> list[MotionFrame]:
+    """Generate a full-body stretch motion.
+
+    Downward: Front shoulders drop low while hind legs extend straight,
+    hips elevated, front paws extend forward.
+
+    Upward: Front torso rises, spine arches downward, rear legs extend
+    backward to elongate spine.
+
+    Args:
+        direction: "downward" for downward dog, "upward" for upward arch.
+        intensity: 0.0-1.0 scale for stretch depth.
+        duration_ms: Total motion duration in milliseconds.
+        front_shoulder_motor_id: Identifier for front shoulder servo.
+        rear_leg_motor_id: Identifier for rear leg servo.
+        spine_motor_id: Identifier for spine servo.
+        front_paw_motor_id: Identifier for front paw servo.
+
+    Returns:
+        List of MotionFrame objects defining the stretch sequence.
+    """
+    frames = []
+    import math
+
+    intensity = max(0.0, min(1.0, intensity))
+    transition_duration = duration_ms * 0.4
+    hold_duration = duration_ms * 0.4
+    return_duration = duration_ms * 0.2
+
+    if direction == "downward":
+        # Downward stretch: front down, rear up
+        max_shoulder_drop = 40.0 * intensity
+        max_rear_extension = 35.0 * intensity
+        max_paw_extension = 50.0 * intensity
+
+        # Phase 1: Transition to downward stretch
+        steps = 10
+        for step in range(steps + 1):
+            progress = step / steps
+            timestamp = progress * transition_duration
+            shoulder = max_shoulder_drop * math.sin(progress * math.pi / 2)
+            rear = max_rear_extension * math.sin(progress * math.pi / 2)
+            paw = max_paw_extension * math.sin(progress * math.pi / 2)
+            frames.append(MotionFrame(
+                timestamp_ms=timestamp,
+                motor_angles={
+                    front_shoulder_motor_id: -shoulder,
+                    rear_leg_motor_id: rear,
+                    front_paw_motor_id: paw,
+                    spine_motor_id: -20.0 * intensity,
+                },
+            ))
+
+        # Phase 2: Hold stretch
+        hold_start = transition_duration
+        hold_end = hold_start + hold_duration
+        hold_steps = 6
+
+        for step in range(hold_steps):
+            progress = step / (hold_steps - 1) if hold_steps > 1 else 0
+            subtle_pulse = 2.0 * math.sin(progress * math.pi * 2)
+            timestamp = hold_start + (progress * hold_duration)
+            frames.append(MotionFrame(
+                timestamp_ms=timestamp,
+                motor_angles={
+                    front_shoulder_motor_id: -max_shoulder_drop + subtle_pulse,
+                    rear_leg_motor_id: max_rear_extension + subtle_pulse,
+                    front_paw_motor_id: max_paw_extension,
+                    spine_motor_id: -20.0 * intensity,
+                },
+            ))
+
+        # Phase 3: Return to neutral
+        return_start = hold_end
+        return_end = return_start + return_duration
+        return_steps = 8
+
+        for step in range(return_steps + 1):
+            progress = step / return_steps
+            timestamp = return_start + (progress * return_duration)
+            shoulder = max_shoulder_drop * math.cos(progress * math.pi / 2)
+            rear = max_rear_extension * math.cos(progress * math.pi / 2)
+            paw = max_paw_extension * math.cos(progress * math.pi / 2)
+            frames.append(MotionFrame(
+                timestamp_ms=timestamp,
+                motor_angles={
+                    front_shoulder_motor_id: -shoulder,
+                    rear_leg_motor_id: rear,
+                    front_paw_motor_id: paw,
+                    spine_motor_id: -20.0 * intensity * (1 - progress),
+                },
+            ))
+
+    else:  # upward
+        # Upward stretch: front up, spine arches, rear extends back
+        max_shoulder_lift = 35.0 * intensity
+        max_spine_arch = 45.0 * intensity
+        max_rear_extension = 40.0 * intensity
+
+        # Phase 1: Transition to upward stretch
+        steps = 10
+        for step in range(steps + 1):
+            progress = step / steps
+            timestamp = progress * transition_duration
+            shoulder = max_shoulder_lift * math.sin(progress * math.pi / 2)
+            spine = max_spine_arch * math.sin(progress * math.pi / 2)
+            rear = max_rear_extension * math.sin(progress * math.pi / 2)
+            frames.append(MotionFrame(
+                timestamp_ms=timestamp,
+                motor_angles={
+                    front_shoulder_motor_id: shoulder,
+                    spine_motor_id: spine,
+                    rear_leg_motor_id: -rear,
+                    front_paw_motor_id: -20.0 * intensity,
+                },
+            ))
+
+        # Phase 2: Hold stretch
+        hold_start = transition_duration
+        hold_end = hold_start + hold_duration
+        hold_steps = 6
+
+        for step in range(hold_steps):
+            progress = step / (hold_steps - 1) if hold_steps > 1 else 0
+            subtle_pulse = 3.0 * math.sin(progress * math.pi * 2)
+            timestamp = hold_start + (progress * hold_duration)
+            frames.append(MotionFrame(
+                timestamp_ms=timestamp,
+                motor_angles={
+                    front_shoulder_motor_id: max_shoulder_lift + subtle_pulse,
+                    spine_motor_id: max_spine_arch + subtle_pulse,
+                    rear_leg_motor_id: -max_rear_extension - subtle_pulse,
+                    front_paw_motor_id: -20.0 * intensity,
+                },
+            ))
+
+        # Phase 3: Return to neutral
+        return_start = hold_end
+        return_end = return_start + return_duration
+        return_steps = 8
+
+        for step in range(return_steps + 1):
+            progress = step / return_steps
+            timestamp = return_start + (progress * return_duration)
+            shoulder = max_shoulder_lift * math.cos(progress * math.pi / 2)
+            spine = max_spine_arch * math.cos(progress * math.pi / 2)
+            rear = max_rear_extension * math.cos(progress * math.pi / 2)
+            frames.append(MotionFrame(
+                timestamp_ms=timestamp,
+                motor_angles={
+                    front_shoulder_motor_id: shoulder,
+                    spine_motor_id: spine,
+                    rear_leg_motor_id: -rear,
+                    front_paw_motor_id: -20.0 * intensity * (1 - progress),
+                },
+            ))
+
+    return frames
+
+
+def breathing(
+    mode: Literal["rest", "panting"],
+    duration_ms: float = 5000.0,
+    jaw_motor_id: str = "jaw",
+    ribcage_motor_id: str = "ribcage",
+) -> list[MotionFrame]:
+    """Generate breathing motion (rest or panting).
+
+    Rest mode: Slow subtle ribcage rise/fall (0.5 Hz, 15-30 cycles/min).
+    Panting mode: Rapid jaw + ribcage motion (3-4 Hz, 100-200 cycles/min).
+
+    Args:
+        mode: "rest" for slow breathing, "panting" for rapid.
+        duration_ms: Total motion duration in milliseconds.
+        jaw_motor_id: Identifier for jaw servo motor.
+        ribcage_motor_id: Identifier for ribcage servo motor.
+
+    Returns:
+        List of MotionFrame objects defining the breathing sequence.
+    """
+    frames = []
+    import math
+
+    if mode == "rest":
+        # Slow breathing: 0.5 Hz = 30 cycles per minute
+        cycle_duration_ms = 2000.0  # 0.5 Hz
+        num_cycles = int(duration_ms / cycle_duration_ms)
+        steps_per_cycle = 16
+
+        for cycle in range(num_cycles):
+            cycle_start = cycle * cycle_duration_ms
+            for step in range(steps_per_cycle):
+                progress = step / steps_per_cycle
+                timestamp = cycle_start + (progress * cycle_duration_ms)
+
+                # Smooth sinusoidal ribcage expansion (subtle)
+                ribcage_position = 15.0 * math.sin(progress * math.pi)
+                # Minimal jaw movement during rest
+                jaw_position = 2.0 * math.sin(progress * math.pi)
+
+                frames.append(MotionFrame(
+                    timestamp_ms=timestamp,
+                    motor_angles={
+                        ribcage_motor_id: ribcage_position,
+                        jaw_motor_id: jaw_position,
+                    },
+                ))
+
+    else:  # panting
+        # Rapid panting: 3.5 Hz = 210 cycles per minute
+        cycle_duration_ms = 285.7  # ~3.5 Hz
+        num_cycles = int(duration_ms / cycle_duration_ms)
+        steps_per_cycle = 10
+
+        for cycle in range(num_cycles):
+            cycle_start = cycle * cycle_duration_ms
+            for step in range(steps_per_cycle):
+                progress = step / steps_per_cycle
+                timestamp = cycle_start + (progress * cycle_duration_ms)
+
+                # Fast triangle wave for jaw (quick open-close)
+                if progress < 0.5:
+                    jaw_position = 20.0 * (progress * 2)
+                else:
+                    jaw_position = 20.0 * (2 - progress * 2)
+
+                # Faster ribcage expansion during panting
+                ribcage_position = 25.0 * math.sin(progress * math.pi)
+
+                frames.append(MotionFrame(
+                    timestamp_ms=timestamp,
+                    motor_angles={
+                        jaw_motor_id: jaw_position,
+                        ribcage_motor_id: ribcage_position,
+                    },
+                ))
+
+    # Add final neutral frame
+    frames.append(MotionFrame(
+        timestamp_ms=duration_ms,
+        motor_angles={
+            jaw_motor_id: 0.0,
+            ribcage_motor_id: 0.0,
+        },
+    ))
+
+    return frames
+
+
+def lie_down(
+    duration_ms: float = 2000.0,
+    front_paw_extension_mm: float = 80.0,
+    spine_motor_id: str = "spine",
+    front_paw_motor_id: str = "front_paw",
+    rear_hip_motor_id: str = "rear_hip",
+) -> list[MotionFrame]:
+    """Generate lie-down sequence: sit → slide paws → settle with crescent hip.
+
+    Transitions from sitting position, slides front paws forward until
+    chest is flat, then shifts rear hips to one side into a relaxed
+    crescent position.
+
+    Args:
+        duration_ms: Total motion duration in milliseconds.
+        front_paw_extension_mm: How far front paws extend forward in mm.
+        spine_motor_id: Identifier for spine servo motor.
+        front_paw_motor_id: Identifier for front paw servo motor.
+        rear_hip_motor_id: Identifier for rear hip servo motor.
+
+    Returns:
+        List of MotionFrame objects defining the lie-down sequence.
+    """
+    frames = []
+    import math
+
+    phase1_duration = duration_ms * 0.4  # Sit to lying position
+    phase2_duration = duration_ms * 0.3  # Extend front paws
+    phase3_duration = duration_ms * 0.3  # Settle hip into crescent
+
+    # Phase 1: Transition from sitting to chest-flat (0 to 40%)
+    steps_phase1 = 12
+    for step in range(steps_phase1 + 1):
+        progress = step / steps_phase1
+        timestamp = progress * phase1_duration
+        # Spine drops from ~90° sitting to near 0° (flat)
+        spine_angle = 90.0 * math.cos(progress * math.pi / 2)
+        frames.append(MotionFrame(
+            timestamp_ms=timestamp,
+            motor_angles={
+                spine_motor_id: spine_angle,
+                front_paw_motor_id: 0.0,
+                rear_hip_motor_id: 0.0,
+            },
+        ))
+
+    # Phase 2: Extend front paws forward (40% to 70%)
+    phase2_start = phase1_duration
+    steps_phase2 = 10
+    for step in range(steps_phase2 + 1):
+        progress = step / steps_phase2
+        timestamp = phase2_start + (progress * phase2_duration)
+        # Smooth forward extension of front paws
+        paw_extension = front_paw_extension_mm * math.sin(progress * math.pi / 2)
+        frames.append(MotionFrame(
+            timestamp_ms=timestamp,
+            motor_angles={
+                spine_motor_id: 0.0,
+                front_paw_motor_id: paw_extension,
+                rear_hip_motor_id: 0.0,
+            },
+        ))
+
+    # Phase 3: Settle hip into crescent, slight tuck (70% to 100%)
+    phase3_start = phase2_start + phase2_duration
+    steps_phase3 = 10
+    for step in range(steps_phase3 + 1):
+        progress = step / steps_phase3
+        timestamp = phase3_start + (progress * phase3_duration)
+        # Hip shifts to one side (let's say right), with subtle rotation
+        hip_rotation = 25.0 * math.sin(progress * math.pi / 2)
+        # Paw tuck: curl toes inward slightly as settling
+        paw_curl = -10.0 * math.sin(progress * math.pi / 2)
+        frames.append(MotionFrame(
+            timestamp_ms=timestamp,
+            motor_angles={
+                spine_motor_id: 5.0 * math.sin(progress * math.pi / 2),
+                front_paw_motor_id: front_paw_extension_mm + paw_curl,
+                rear_hip_motor_id: hip_rotation,
+            },
+        ))
+
+    return frames
+
+
+def hip_shift(
+    direction: Literal["left", "right"],
+    angle_degrees: float = 30.0,
+    duration_ms: float = 1200.0,
+    hip_motor_id: str = "hip",
+) -> list[MotionFrame]:
+    """Generate lateral hip shift for comfort repositioning.
+
+    Dog shifts hips to one side in a smooth, comfortable motion.
+    Useful for settling poses, weight shifting, and comfort adjustments.
+
+    Args:
+        direction: "left" or "right" for shift direction.
+        angle_degrees: Magnitude of hip rotation in degrees.
+        duration_ms: Total motion duration in milliseconds.
+        hip_motor_id: Identifier for hip servo motor.
+
+    Returns:
+        List of MotionFrame objects defining the hip shift sequence.
+    """
+    frames = []
+    import math
+
+    shift_direction = -1.0 if direction == "left" else 1.0
+    target_angle = angle_degrees * shift_direction
+
+    # Phase 1: Shift hips to target position (0 to 50%)
+    transition_duration = duration_ms * 0.5
+    transition_steps = 12
+
+    for step in range(transition_steps + 1):
+        progress = step / transition_steps
+        timestamp = progress * transition_duration
+        # Smooth acceleration into shift
+        hip_angle = target_angle * math.sin(progress * math.pi / 2)
+        frames.append(MotionFrame(
+            timestamp_ms=timestamp,
+            motor_angles={hip_motor_id: hip_angle},
+        ))
+
+    # Phase 2: Hold position with subtle micro-adjustments (50% to 80%)
+    hold_duration = duration_ms * 0.3
+    hold_start = transition_duration
+    hold_steps = 6
+
+    for step in range(hold_steps):
+        progress = step / (hold_steps - 1) if hold_steps > 1 else 0
+        timestamp = hold_start + (progress * hold_duration)
+        # Tiny comfort shifts while holding
+        micro_adjust = 2.0 * math.sin(progress * math.pi * 2)
+        frames.append(MotionFrame(
+            timestamp_ms=timestamp,
+            motor_angles={hip_motor_id: target_angle + micro_adjust},
+        ))
+
+    # Phase 3: Return to center (80% to 100%)
+    return_duration = duration_ms * 0.2
+    return_start = hold_start + hold_duration
+    return_steps = 8
+
+    for step in range(return_steps + 1):
+        progress = step / return_steps
+        timestamp = return_start + (progress * return_duration)
+        # Smooth return to neutral
+        hip_angle = target_angle * math.cos(progress * math.pi / 2)
+        frames.append(MotionFrame(
+            timestamp_ms=timestamp,
+            motor_angles={hip_motor_id: hip_angle},
+        ))
+
+    return frames

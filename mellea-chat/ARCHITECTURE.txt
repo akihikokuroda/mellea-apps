@@ -1,0 +1,226 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    DOG MOVEMENT SYSTEM ARCHITECTURE                           ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          INPUT LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  User Audio Input          Microphone Recording           5 seconds        │
+│        ↓                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  Audio Recording                                                │     │
+│  │  - 16 kHz sample rate                                           │     │
+│  │  - Mono channel                                                 │     │
+│  │  - WAV format                                                   │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+│        ↓                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SPEECH-TO-TEXT LAYER (Whisper)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Audio Bytes                                                               │
+│        ↓                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  transcribe_with_whisper()                                      │     │
+│  │  - Loads Whisper model (tiny/base/small/medium/large)          │     │
+│  │  - Transcribes audio to text                                    │     │
+│  │  - Returns: "Are you happy to see me?"                          │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+│        ↓                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   LANGUAGE MODEL LAYER (Mellea + Ollama)                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  User Text: "Are you happy to see me?"                                     │
+│        ↓                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  send_to_mellea_llm()                                           │     │
+│  │  - Enhances system prompt with movement instructions            │     │
+│  │  - Sends to Ollama LLM (granite4.1:3b)                          │     │
+│  │  - Returns raw response with [MOVE: ...] commands              │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+│        ↓                                                                    │
+│  Raw Response: "Of course! I'm so excited to see you!              │
+│                [MOVE: tail_wag:style=fast_loose,duration=1500]     │
+│                [MOVE: ear_twitch:type=vertical,count=4,frequency=6]│     │
+│                [MOVE: walk:gait=fast_trot,strides=3]"              │     │
+│        ↓                                                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  parse_llm_response_for_movements()                                        │
+│  - Extracts [MOVE: ...] commands via regex                                │
+│  - Returns: (cleaned_text, [movement_commands])                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│        ↓                                                                    │
+│  Result: Cleaned Response: "Of course! I'm so excited to see you!" │
+│          Movements: [                                              │
+│            "tail_wag:style=fast_loose,duration=1500",             │
+│            "ear_twitch:type=vertical,count=4,frequency=6",        │
+│            "walk:gait=fast_trot,strides=3"                        │
+│          ]                                                         │
+│        ↓                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DOG MOVEMENT LAYER (dogmove.py)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Movement Commands                                                         │
+│        ↓                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  execute_llm_movements()                                        │     │
+│  │  ├─ tail_wag(FAST_LOOSE, 1500ms)                               │     │
+│  │  │  └─ Returns: [MotionFrame(0ms, {tail: 22.5°}), ...]        │     │
+│  │  │     Total: 33 frames, 1500ms                                │     │
+│  │  ├─ ear_twitch(VERTICAL, 4 cycles, 6Hz)                       │     │
+│  │  │  └─ Returns: [MotionFrame(0ms, {L_ear: 20°, R_ear: 20°})...]│     │
+│  │  │     Total: 33 frames, 666ms                                 │     │
+│  │  └─ walk_or_trot(FAST_TROT, 3 strides)                         │     │
+│  │     └─ Returns: [MotionFrame(0ms, {FL:0, FR:-12, BL:-12, BR:0})...]│     │
+│  │        Total: 19 frames, 900ms                                 │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+│        ↓                                                                    │
+│  Motion Frames Ready                                                      │
+│  - Tail motion: 33 frames with smooth angles                              │
+│  - Ear motion: 33 frames with synchronized twitches                       │
+│  - Leg motion: 19 frames with diagonal gait pattern                       │
+│  - Total: 85 frames over ~3000ms                                          │
+│        ↓                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 TEXT-TO-SPEECH LAYER (Edge TTS)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Cleaned Response: "Of course! I'm so excited to see you!"                │
+│        ↓                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  synthesize_speech()                                            │     │
+│  │  - Converts text to speech (en-US-AriaNeural)                  │     │
+│  │  - Adjustable speech rate (+0% default)                         │     │
+│  │  - Returns: MP3 audio bytes                                     │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+│        ↓                                                                    │
+│  Audio Response: MP3 file (ready for playback)                            │
+│        ↓                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         OUTPUT LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Motion Frames + Audio                                                    │
+│        ↓                                                                    │
+│  ┌──────────────────────────┐    ┌──────────────────────────┐             │
+│  │ Hardware Motors          │    │ Audio Playback           │             │
+│  │                          │    │                          │             │
+│  │ ├─ Tail servo            │    │ ├─ Speaker output        │             │
+│  │ ├─ Head servo            │    │ └─ Synchronized timing   │             │
+│  │ ├─ 4 leg servos          │    └──────────────────────────┘             │
+│  │ ├─ Ear servos (L/R)      │                                             │
+│  │ └─ Jaw servo             │    Physical Reaction                        │
+│  │                          │    ├─ Tail wags excitedly                  │
+│  │ Actuates based on        │    ├─ Ears perk up vertically              │
+│  │ MotionFrame angles       │    ├─ Dog walks playfully                  │
+│  │ with millisecond         │    └─ Audio plays naturally                │
+│  │ precision timing         │                                             │
+│  └──────────────────────────┘    Interactive Experience!                  │
+│        ↓                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  RESULT: Toy dog responds to user with natural movements        │     │
+│  │          synchronized with AI-generated speech                  │     │
+│  │                                                                 │     │
+│  │  • Dog appears conscious and engaged                           │     │
+│  │  • Movement reflects emotional state from LLM                  │     │
+│  │  • Audio and motion are perfectly synchronized                 │     │
+│  │  • Real-time responsiveness (<100ms latency)                   │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+│        ↓                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═════════════════════════════════════════════════════════════════════════════════
+
+                            DATA FLOW EXAMPLE
+
+        User says                                    Dog responds
+        =========================================    ==================
+        
+        "Are you happy?"
+             ↓
+        Whisper transcription ────→ [text output]
+             ↓
+        LLM generation ────→ "Of course! [MOVE: tail_wag...]"
+             ↓
+        Movement parsing ────→ Extract [MOVE: ...] commands
+             ↓
+        Motion generation ────→ Generate 85+ MotionFrames
+             ↓
+        TTS synthesis ────→ "Of course!" (audio)
+             ↓
+        Parallel execution:
+        ├─→ Play audio through speakers
+        └─→ Execute motor commands with frame timing
+             ↓
+        Result: Dog wags tail excitedly while saying "Of course!"
+
+═════════════════════════════════════════════════════════════════════════════════
+
+                        MOTION GENERATION DETAIL
+
+            tail_wag(FAST_LOOSE, 1500ms)
+                    ↓
+        ┌───────────────────────────────────────┐
+        │  Generate 4 cycles of rapid oscillation
+        │  8 steps per cycle
+        │  Duration: 1500ms
+        │  Arc: 45° swing amplitude
+        │
+        │  Frame 0:  0ms   → tail: 22.5°
+        │  Frame 1:  47ms  → tail: -36.6°
+        │  Frame 2:  94ms  → tail: 28.1°
+        │  ...
+        │  Frame 32: 1500ms → tail: 0.0° (neutral)
+        │
+        │  Total: 33 MotionFrame objects
+        └───────────────────────────────────────┘
+                    ↓
+            Ready for hardware servos
+            to execute smooth motion
+
+═════════════════════════════════════════════════════════════════════════════════
+
+                        KEY COMPONENTS
+
+┌─────────────────┐
+│  dogmove.py     │ ← Core movement functions
+├─────────────────┤
+│ • MotionFrame   │
+│ • tail_wag()    │
+│ • head_tilt()   │
+│ • walk_or_trot()│
+│ • paws_and_begging()
+│ • ear_twitch()  │
+│ • panting_interaction()
+└─────────────────┘
+
+┌──────────────────────────────────────┐
+│ mellea_audio_response_pipeline.py    │ ← Integration layer
+├──────────────────────────────────────┤
+│ • execute_dog_movement()             │
+│ • parse_llm_response_for_movements() │
+│ • execute_llm_movements()            │
+│ • Enhanced LLM integration           │
+└──────────────────────────────────────┘
+
+┌──────────────────────────────────────┐
+│ Test & Example Files                 │ ← Validation
+├──────────────────────────────────────┤
+│ • test_dog_movements.py              │
+│ • example_dog_interaction.py         │
+└──────────────────────────────────────┘
+
+═════════════════════════════════════════════════════════════════════════════════
