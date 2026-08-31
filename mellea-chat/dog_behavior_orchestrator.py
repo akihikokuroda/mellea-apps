@@ -58,6 +58,14 @@ class BehaviorOrchestrator:
             movements = self._scratching_movements(intensity, duration)
         elif dog_state == DogState.GROOMING:
             movements = self._grooming_movements(intensity, duration)
+        elif dog_state == DogState.CHASING:
+            movements = self._chasing_movements(intensity, duration)
+        elif dog_state == DogState.BEING_CHASED:
+            movements = self._being_chased_movements(intensity, duration)
+        elif dog_state == DogState.PLAYING_TOGETHER:
+            movements = self._playing_together_movements(intensity, duration)
+        elif dog_state == DogState.INTERACTING:
+            movements = self._interacting_movements(intensity, duration)
         else:
             movements = self._idle_movements(duration)
 
@@ -362,6 +370,123 @@ class BehaviorOrchestrator:
                 break
 
         return self._normalize_timestamps(movements[:100], duration)
+
+    def _chasing_movements(self, intensity: float, duration: int) -> list[MotionFrame]:
+        """Chasing: fast forward-focused trotting and head positioning."""
+        movements = []
+        elapsed = 0
+
+        while elapsed < duration:
+            if random.random() < 0.6:
+                # Fast trot forward
+                trot = walk_or_trot(gait=WalkGait.FAST_TROT, stride_count=random.randint(2, 3), stride_length_mm=int(60 * intensity))
+                movements.extend(trot)
+                elapsed += trot[-1].timestamp_ms if trot else 0
+            else:
+                # Head forward and alert
+                head = head_tilt(tilt_angle_degrees=0, duration_ms=200)
+                movements.extend(head)
+                elapsed += 200
+
+            if elapsed >= duration:
+                break
+
+        return self._normalize_timestamps(movements[:100], duration)
+
+    def _being_chased_movements(self, intensity: float, duration: int) -> list[MotionFrame]:
+        """Being chased: evasive movements, direction changes, occasional faster bursts."""
+        movements = []
+        elapsed = 0
+
+        while elapsed < duration:
+            choice = random.random()
+
+            if choice < 0.4:
+                # Fast evasive trot
+                trot = walk_or_trot(gait=WalkGait.FAST_TROT, stride_count=random.randint(1, 2), stride_length_mm=int(50 * intensity))
+                movements.extend(trot)
+                elapsed += trot[-1].timestamp_ms if trot else 0
+            elif choice < 0.7:
+                # Direction change (head turn)
+                head = head_tilt(tilt_angle_degrees=random.choice([-30, 30]), duration_ms=250)
+                movements.extend(head)
+                elapsed += 250
+            else:
+                # Quick glance back (head rear movement)
+                glance = head_tilt(tilt_angle_degrees=random.uniform(-20, 20), duration_ms=300)
+                movements.extend(glance)
+                elapsed += 300
+
+            if elapsed >= duration:
+                break
+
+        return self._normalize_timestamps(movements[:80], duration)
+
+    def _playing_together_movements(self, intensity: float, duration: int) -> list[MotionFrame]:
+        """Playing together: play bows, excited wags, playful head tilts."""
+        movements = []
+        elapsed = 0
+
+        while elapsed < duration:
+            choice = random.random()
+
+            if choice < 0.3:
+                # Play bow
+                bow = paws_and_begging(
+                    hip_hinge_angle_degrees=random.uniform(30, 50),
+                    front_paw_lift_height_mm=20,
+                    hold_duration_ms=500,
+                )
+                movements.extend(bow)
+                elapsed += bow[-1].timestamp_ms if bow else 500
+            elif choice < 0.6:
+                # Excited tail wag
+                wag = tail_wag(
+                    style=WagStyle.FAST_LOOSE,
+                    duration_ms=int(600 * intensity),
+                    swing_arc_degrees=45,
+                )
+                movements.extend(wag)
+                elapsed += wag[-1].timestamp_ms if wag else 0
+            else:
+                # Playful head tilt
+                tilt = head_tilt(tilt_angle_degrees=random.choice([-20, 20]), duration_ms=300)
+                movements.extend(tilt)
+                elapsed += 300
+
+            if elapsed >= duration:
+                break
+
+        return self._normalize_timestamps(movements[:120], duration)
+
+    def _interacting_movements(self, intensity: float, duration: int) -> list[MotionFrame]:
+        """Interacting: gentle sniffing, slow circling, ear attention."""
+        movements = []
+        elapsed = 0
+
+        while elapsed < duration:
+            choice = random.random()
+
+            if choice < 0.4:
+                # Gentle sniffing head position
+                sniff = head_tilt(tilt_angle_degrees=random.uniform(-15, 15), duration_ms=350)
+                movements.extend(sniff)
+                elapsed += 350
+            elif choice < 0.7:
+                # Slow steady walk (circling)
+                walk = walk_or_trot(gait=WalkGait.STEADY_WALK, stride_count=1, stride_length_mm=30)
+                movements.extend(walk)
+                elapsed += walk[-1].timestamp_ms if walk else 500
+            else:
+                # Gentle ear twitch
+                twitch = ear_twitch(motion_type=EarMotion.VERTICAL, twitch_count=2, frequency_hz=1.5)
+                movements.extend(twitch)
+                elapsed += twitch[-1].timestamp_ms if twitch else 300
+
+            if elapsed >= duration:
+                break
+
+        return self._normalize_timestamps(movements[:80], duration)
 
     def _idle_movements(self, duration: int) -> list[MotionFrame]:
         """Fallback: simple neutral posture."""

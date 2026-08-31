@@ -14,6 +14,10 @@ class DogState(Enum):
     EATING = "eating"
     SCRATCHING = "scratching"
     GROOMING = "grooming"
+    CHASING = "chasing"
+    BEING_CHASED = "being_chased"
+    PLAYING_TOGETHER = "playing_together"
+    INTERACTING = "interacting"
 
 
 @dataclass
@@ -21,6 +25,9 @@ class DogStateMetrics:
     energy_level: int = 50  # 0-100
     hunger_level: int = 50  # 0-100
     attention_level: int = 30  # 0-100, how much dog wants interaction
+    interaction_target: Optional[str] = None  # ID of dog this dog is interacting with
+    interaction_type: Optional[str] = None  # Type of interaction: "chase", "play_together", etc.
+    interaction_energy_bonus: float = 0.0  # Extra energy during interactions (0.0-1.0)
 
     def decay_over_time(self, elapsed_ms: int):
         """Simulate natural decay of metrics over time."""
@@ -53,6 +60,22 @@ class DogStateMetrics:
     def on_user_interaction(self, intensity: int = 50):
         """Dog responds to user interaction."""
         self.attention_level = min(100, intensity)
+
+    def can_initiate_interaction(self) -> bool:
+        """Check if dog has energy and attention for interaction."""
+        return self.energy_level > 40 and self.attention_level > 25 and self.interaction_target is None
+
+    def start_interaction(self, other_dog_id: str, interaction_type: str):
+        """Start interaction with another dog."""
+        self.interaction_target = other_dog_id
+        self.interaction_type = interaction_type
+        self.interaction_energy_bonus = 0.2
+
+    def end_interaction(self):
+        """End current interaction."""
+        self.interaction_target = None
+        self.interaction_type = None
+        self.interaction_energy_bonus = 0.0
 
 
 @dataclass
@@ -104,12 +127,24 @@ class DailySchedule:
         Determine next action based on:
         - Time of day (schedule)
         - Internal metrics (energy, hunger, attention)
+        - Active interactions
         - Some randomization for naturalness
 
         Returns: (DogState, duration_ms)
         """
         if dt is None:
             dt = datetime.now()
+
+        # If currently in an interaction, continue with appropriate state
+        if self.metrics.interaction_target and self.metrics.interaction_type:
+            if self.metrics.interaction_type == "chase":
+                next_state = random.choice([DogState.CHASING, DogState.PLAYING])
+            elif self.metrics.interaction_type == "play_together":
+                next_state = DogState.PLAYING_TOGETHER
+            else:
+                next_state = DogState.INTERACTING
+            duration = random.randint(5000, 20000)  # 5-20 sec per interaction cycle
+            return next_state, duration
 
         base_state = self.get_base_activity_for_time(dt)
 
@@ -153,6 +188,10 @@ class DailySchedule:
             DogState.EATING: random.randint(5000, 15000),          # 5-15 sec
             DogState.SCRATCHING: random.randint(3000, 10000),      # 3-10 sec
             DogState.GROOMING: random.randint(10000, 30000),       # 10-30 sec
+            DogState.CHASING: random.randint(10000, 30000),        # 10-30 sec
+            DogState.BEING_CHASED: random.randint(10000, 30000),   # 10-30 sec
+            DogState.PLAYING_TOGETHER: random.randint(15000, 45000),  # 15-45 sec
+            DogState.INTERACTING: random.randint(5000, 20000),     # 5-20 sec
         }
         duration = duration_map.get(next_state, 10000)
 
@@ -208,5 +247,7 @@ class DailySchedule:
             "hunger_level": self.metrics.hunger_level,
             "attention_level": self.metrics.attention_level,
             "current_state": self.current_state.value,
+            "interaction_target": self.metrics.interaction_target,
+            "interaction_type": self.metrics.interaction_type,
             "timestamp": self.last_update.isoformat(),
         }
